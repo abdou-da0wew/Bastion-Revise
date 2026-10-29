@@ -26,6 +26,8 @@ const navItems = [
   { href: "/dashboard/files", label: "My Files", icon: FileIcon },
   { href: "/dashboard/upload", label: "Upload", icon: Upload },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/dashboard/review", label: "Publish Review", icon: Rocket },
+  { href: "/dashboard/status", label: "System Status", icon: Activity },
   { href: "/dashboard/logs", label: "Audit Logs", icon: ScrollText },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ] as const;

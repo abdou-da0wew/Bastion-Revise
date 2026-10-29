@@ -1,0 +1,89 @@
+# Bastion — one project, three services (+ optional tunnel):
+#   cdn        Bastion CDN core (Fastify/Bun) — infra: files, /dl registry, tokens, metrics
+#   dashboard  Bastion dashboard (Next.js)    — accounts, uploads UI, access logs, admin
+#   mongo      dashboard state (users, file metadata, audit/access logs)
+#   cloudflared public door for cdn.celestialb.cv (profile: tunnel)
+# All persistent files: /opt/celecdn (CDN) and the named mongo volume.
+# Self-healing: restart: unless-stopped + healthchecks; logs capped 10m x 3.
+name: bastion
+
+services:
+  cdn:
+    build: .
+    image: bastion-cdn:latest
+    container_name: bastion-cdn
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      NODE_ENV: production
+      CDN_HOST: 0.0.0.0
+      CDN_PORT: "3005"
+      CDN_ROOT_DIR: /opt/celecdn/public
+      CDN_PACKAGE_DIR: /opt/celecdn/packages
+      CDN_DATA_DIR: /opt/celecdn/data
+    ports:
+      - "${CDN_BIND:-127.0.0.1:3005}:3005"
+    volumes:
+      - /opt/celecdn:/opt/celecdn
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }
+    healthcheck:
+      test: ["CMD", "bun", "-e", "const r=await fetch('http://127.0.0.1:3005/health'); if(!r.ok) process.exit(1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    stop_grace_period: 30s
+
+  dashboard:
+    build: ./apps/dashboard
+    image: bastion-dashboard:latest
+    container_name: bastion-dashboard
+    restart: unless-stopped
+    depends_on:
+      cdn: { condition: service_healthy }
+      mongo: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongo:27017/bastion
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (openssl rand -hex 32)}
+      NEXT_PUBLIC_BASTION_URL: ${DASHBOARD_PUBLIC_URL:-http://localhost:3000}
+      NEXT_PUBLIC_CDN_URL: ${CDN_PUBLIC_URL:-https://cdn.celestialb.cv}
+      CDN_INTERNAL_URL: http://cdn:3005
+      CDN_SERVICE_TOKEN: ${CDN_SERVICE_TOKEN:-}
+      CDN_ADMIN_TOKEN: ${CDN_ADMIN_TOKEN:-}
+      BASTION_SUPERADMIN_EMAILS: ${BASTION_SUPERADMIN_EMAILS:-}
+    ports:
+      - "${DASHBOARD_BIND:-127.0.0.1:3000}:3000"
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }
+    stop_grace_period: 30s
+
+  mongo:
+    image: mongo:7
+    container_name: bastion-mongo
+    restart: unless-stopped
+    volumes:
+      - bastion-mongo:/data/db
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: bastion-tunnel
+    restart: unless-stopped
+    profiles: ["tunnel"]
+    depends_on:
+      cdn: { condition: service_healthy }
+      dashboard: { condition: service_started }
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?Set TUNNEL_TOKEN in .env (Cloudflare Zero Trust > Networks > Tunnels)}
+    # YAML block form below is Compose command syntax, not Docker shell form;
+    # for a custom image prefer exec-form ENTRYPOINT+CMD in its Dockerfile.
+    command: tunnel --no-autoupdate run
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }
+
+volumes:
+  bastion-mongo:

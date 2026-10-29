@@ -1,0 +1,10 @@
+.git
+.github
+node_modules
+.env
+data
+packages
+*.log
+AUDIT.md
+docs
+test

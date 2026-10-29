@@ -3,7 +3,7 @@
 import { FileIcon, HardDrive, Download, Shield } from "lucide-react";
 import { cn, formatBytes } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AsciiCardSkeleton } from "@/components/ui/ascii";
 
 interface Stat {
   label: string;
@@ -63,17 +63,7 @@ export function StatsCards({ data, loading }: StatsCardsProps) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i}>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <Skeleton className="h-10 w-10 rounded-lg" />
-                <div className="space-y-2 flex-1">
-                  <Skeleton className="h-3 w-20" />
-                  <Skeleton className="h-6 w-16" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <AsciiCardSkeleton key={i} seed={20 + i} />
         ))}
       </div>
     );

@@ -11,6 +11,8 @@ import {
   ScrollText,
   Settings,
   Shield,
+  Activity,
+  Rocket,
   Menu,
   X,
   ChevronRight,

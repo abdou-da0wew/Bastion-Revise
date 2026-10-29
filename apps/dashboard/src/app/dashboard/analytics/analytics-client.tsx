@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatBytes } from "@/lib/utils";
+import { ActivityHeatmap, GoalGauges, ServiceHealth } from "@/components/dashboard/viz";
+import { AsciiCardSkeleton } from "@/components/ui/ascii";
 
 interface Analytics { summary: { totalRequests: number; totalFiles: number; totalDownloads: number; totalStorageBytes: number }; topFiles: { id: string; name: string; downloads: number; sizeBytes: number }[]; typeDistribution: { type: string; count: number; percentage: number }[]; requestsOverTime: { labels: string[]; values: number[] } }
 export function AnalyticsClient() {
@@ -13,7 +15,7 @@ export function AnalyticsClient() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between"><div><h1 className="text-2xl font-semibold tracking-tight">Analytics</h1><p className="text-sm text-muted-foreground mt-1">Access-log analytics from dashboard-mediated downloads.</p></div>
         <select className="rounded-md border bg-background px-2 py-1 text-sm" value={tf} onChange={(e) => setTf(e.target.value)}><option value="24h">Last 24h</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option></select></div>
-      {!data ? <p className="text-sm text-muted-foreground">Loading…</p> : <>
+      {!data ? <AsciiCardSkeleton seed={5} /> : <>
         <div className="grid gap-4 sm:grid-cols-4">{[["Requests", data.summary.totalRequests], ["Files", data.summary.totalFiles], ["Downloads", data.summary.totalDownloads], ["Storage", formatBytes(data.summary.totalStorageBytes)]].map(([k, v]) => (
           <Card key={k as string}><CardHeader><CardTitle className="text-sm text-muted-foreground">{k}</CardTitle></CardHeader><CardContent className="text-2xl font-semibold">{v}</CardContent></Card>))}</div>
         <Card><CardHeader><CardTitle>Requests over time</CardTitle></CardHeader><CardContent>
@@ -23,6 +25,11 @@ export function AnalyticsClient() {
           <Card><CardHeader><CardTitle>Top files</CardTitle></CardHeader><CardContent><Table><TableBody>{data.topFiles.map((f) => (<TableRow key={f.id}><TableCell>{f.name}</TableCell><TableCell>{f.downloads} downloads</TableCell><TableCell>{formatBytes(f.sizeBytes)}</TableCell></TableRow>))}</TableBody></Table></CardContent></Card>
           <Card><CardHeader><CardTitle>File types</CardTitle><CardDescription>By MIME group.</CardDescription></CardHeader><CardContent><Table><TableBody>{data.typeDistribution.map((t) => (<TableRow key={t.type}><TableCell>{t.type}</TableCell><TableCell>{t.count}</TableCell><TableCell>{t.percentage}%</TableCell></TableRow>))}</TableBody></Table></CardContent></Card>
         </div></>}
+      <ActivityHeatmap />
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <GoalGauges />
+        <ServiceHealth />
+      </div>
     </div>
   );
 }

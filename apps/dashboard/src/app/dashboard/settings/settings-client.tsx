@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatBytes, formatDate } from "@/lib/utils";
+import { PreferencesCard } from "@/components/dashboard/preferences";
+import { AsciiCardSkeleton } from "@/components/ui/ascii";
 
 interface Me { name: string; email: string; role: string; apiKey: string; active: boolean; expiresAt: string | null; lastLoginAt: string | null; cdnPackage: string; quota: { maxFiles: number; maxStorageBytes: number; maxRequestsPerDay: number }; createdAt: string }
 export function SettingsClient() {
@@ -15,7 +17,7 @@ export function SettingsClient() {
     const res = await fetch("/api/auth/me", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
     const data = await res.json(); setMsg(res.ok ? ok : data.error?.message || "Failed"); if (res.ok) load();
   };
-  if (!me) return <p className="text-sm text-muted-foreground">Loading settings…</p>;
+  if (!me) return <AsciiCardSkeleton seed={8} />;
   return (
     <div className="space-y-6 animate-fade-in max-w-3xl">
       <div><h1 className="text-2xl font-semibold tracking-tight">Settings</h1><p className="text-sm text-muted-foreground mt-1">Profile, API key, quota and account lifetime.</p></div>
@@ -46,6 +48,7 @@ export function SettingsClient() {
           <div className="space-y-2"><Label>Current password</Label><Input name="current" type="password" required /></div>
           <div className="space-y-2"><Label>New password (8+ chars)</Label><Input name="next" type="password" minLength={8} required /></div>
           <Button type="submit">Change password</Button></form></CardContent></Card>
+      <PreferencesCard />
     </div>
   );
 }

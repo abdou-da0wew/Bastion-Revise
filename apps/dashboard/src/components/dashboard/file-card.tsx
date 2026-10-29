@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AsciiCardSkeleton } from "@/components/ui/ascii";
 import Link from "next/link";
 import {
   FileIcon,
@@ -199,18 +200,5 @@ export function FileCard({ file, onToggleStatus, onDelete, onCopyUrl }: FileCard
 }
 
 export function FileCardSkeleton() {
-  return (
-    <div className="flex items-center gap-4 rounded-lg border bg-card p-4">
-      <div className="h-10 w-10 rounded-lg bg-muted animate-pulse" />
-      <div className="flex-1 space-y-2">
-        <div className="h-4 w-48 rounded bg-muted animate-pulse" />
-        <div className="h-3 w-32 rounded bg-muted animate-pulse" />
-      </div>
-      <div className="h-6 w-16 rounded-full bg-muted animate-pulse" />
-      <div className="flex gap-1">
-        <div className="h-8 w-8 rounded bg-muted animate-pulse" />
-        <div className="h-8 w-8 rounded bg-muted animate-pulse" />
-      </div>
-    </div>
-  );
+  return <AsciiCardSkeleton seed={9} />;
 }

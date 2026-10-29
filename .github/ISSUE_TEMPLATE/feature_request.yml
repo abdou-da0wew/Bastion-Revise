@@ -1,0 +1,8 @@
+name: Feature request
+description: Suggest an improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes: { label: Proposal, description: Problem, proposed behaviour, alternatives }
+    validations: { required: true }

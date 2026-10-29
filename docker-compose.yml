@@ -1,0 +1,50 @@
+# CeleCDN — app + optional Cloudflare Tunnel.
+# All persistent files live in /opt/celecdn on the HOST (bind mount):
+#   /opt/celecdn/public/    web root          /opt/celecdn/packages/  /dl registry
+#   /opt/celecdn/data/      tokens.json       /opt/celecdn/logs/      (reserved; app logs go to stdout)
+# Self-healing: restart: unless-stopped + healthchecks. Log thrash is capped
+# twice — Docker json-file rotation below AND stdout-only app logging.
+name: celecdn
+
+services:
+  cdn:
+    build: .
+    image: celecdn:latest
+    container_name: celecdn
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      NODE_ENV: production
+      CDN_HOST: 0.0.0.0
+      CDN_PORT: "3005"
+      CDN_ROOT_DIR: /opt/celecdn/public
+      CDN_PACKAGE_DIR: /opt/celecdn/packages
+      CDN_DATA_DIR: /opt/celecdn/data
+    ports:
+      - "${CDN_BIND:-127.0.0.1:3005}:3005"   # localhost-only by default; the tunnel is the public door
+    volumes:
+      - /opt/celecdn:/opt/celecdn
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    healthcheck:
+      test: ["CMD", "bun", "-e", "const r=await fetch('http://127.0.0.1:3005/health'); if(!r.ok) process.exit(1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    stop_grace_period: 30s
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: celecdn-tunnel
+    restart: unless-stopped
+    profiles: ["tunnel"]
+    depends_on:
+      cdn: { condition: service_healthy }
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?Set TUNNEL_TOKEN in .env (Cloudflare Zero Trust > Networks > Tunnels)}
+    command: tunnel --no-autoupdate run
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
